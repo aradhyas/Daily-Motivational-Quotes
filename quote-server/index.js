@@ -7,7 +7,8 @@ import { OpenAI } from 'openai';
 const app = express();
 
 // Allow local dev (Expo/Web/anything). For tighter control, list origins instead.
-app.use(cors());
+// quote-server/index.js
+app.use(cors({ origin: ["https://daily-motivational-quotes.vercel.app", "http://localhost:5173"] }));
 app.use(express.json());
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
