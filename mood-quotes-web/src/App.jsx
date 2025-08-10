@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import "./index.css";
 
 const MOODS = ["happy", "sad", "anxious", "angry", "motivated", "lonely", "grateful", "tired"];
-const API_BASE = "http://localhost:8787"; // change to your deployed URL later
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8787"; // change to your deployed URL later
 
 export default function App() {
   const [selected, setSelected] = useState([]);   // ← multi-select
