@@ -1,0 +1,24 @@
+.container {
+  max-width: 600px;
+  margin: auto;
+  text-align: center;
+  padding: 2rem;
+}
+
+.moods button {
+  margin: 0.3rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+}
+
+button.active {
+  background: black;
+  color: white;
+}
+
+blockquote {
+  margin-top: 1rem;
+  font-style: italic;
+}
