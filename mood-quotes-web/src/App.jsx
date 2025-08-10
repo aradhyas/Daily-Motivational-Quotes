@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./index.css";
+import confetti from "canvas-confetti";
 
 const MOODS = [
   "happy","sad","anxious","angry","motivated","lonely","grateful","tired",
@@ -9,13 +10,31 @@ const MOODS = [
 const MAX_SELECT = 3;
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8787";
 
+const BUTTON_TEXTS = [
+  "Ready to roll",
+  "Hit me!",
+  "Serve the vibes",
+  "Spark me up",
+  "Boost me",
+  "Inspire me",
+  "Let's go!"
+];
+
+function fireConfetti() {
+  confetti({
+    particleCount: 80,
+    spread: 70,
+    origin: { y: 0.6 },
+    colors: ["#7dd3fc", "#a78bfa", "#f9a8d4", "#fde68a"],
+  });
+}
+
 export default function App() {
   const [selected, setSelected] = useState([]);
   const [quote, setQuote] = useState("");
   const [loading, setLoading] = useState(false);
   const [limitNote, setLimitNote] = useState(false);
 
-  // persist selection so users remember even after refresh
   useEffect(() => {
     const saved = localStorage.getItem("moods");
     if (saved) setSelected(JSON.parse(saved));
@@ -46,45 +65,58 @@ export default function App() {
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
       setQuote(data.quote || "Keep going. Your next step matters most.");
-    } catch (e) {
+      fireConfetti(); // 🎉 right after we get the quote
+    } catch {
       setQuote("⚠️ Error fetching quote.");
-      console.error(e);
     } finally {
       setLoading(false);
     }
   }
+  
+
+  function clearSelection() {
+    setSelected([]);
+    setQuote("");
+  }
 
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-12">
+    <div className="min-h-screen text-white px-6 py-12 relative">
+      {/* floating sparkles */}
+      <div className="sparkle" style={{left: "10%", bottom: "20%"}} />
+      <div className="sparkle" style={{left: "25%", bottom: "15%", animationDelay: ".6s"}} />
+      <div className="sparkle" style={{left: "70%", bottom: "25%", animationDelay: ".3s"}} />
+      <div className="sparkle" style={{left: "85%", bottom: "12%", animationDelay: ".9s"}} />
+
       <div className="mx-auto w-full max-w-3xl">
         <header className="text-center">
-          <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
-            Mood Quotes
-          </h1>
-          <p className="mt-2 text-sm md:text-base text-neutral-500">
+          <div className="text-5xl md:text-6xl display font-bold tracking-tight">
+            <span className="align-middle">✨</span> Feeling Moody?
+          </div>
+          <p className="mt-3 text-white/70">
             Pick up to <b>{MAX_SELECT}</b> emotions and get a tiny boost.
           </p>
         </header>
 
-        {/* Mood chips */}
+        {/* Chips */}
         <section className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
           {MOODS.map((m) => {
             const isActive = selected.includes(m);
             const atLimit = !isActive && selected.length >= MAX_SELECT;
+
             return (
               <button
                 key={m}
                 onClick={() => toggleMood(m)}
-                className={[
-                  "w-full text-sm px-3 py-2 rounded-full border transition",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/50",
-                  isActive
-                    ? "bg-white border-neutral-900 text-neutral-900 ring-1 ring-neutral-900 shadow-sm"
-                    : "bg-neutral-100 border-neutral-300 hover:bg-white hover:border-neutral-400",
-                  atLimit && "opacity-40 cursor-not-allowed hover:bg-neutral-100 hover:border-neutral-300",
-                ].join(" ")}
                 aria-pressed={isActive}
                 title={atLimit ? `You can select up to ${MAX_SELECT}` : `Toggle ${m}`}
+                className={[
+                  "w-full text-sm px-3 py-2 rounded-full border transition transform",
+                  "backdrop-blur-sm",
+                  isActive
+                    ? "bg-white text-black border-transparent ring-2 ring-offset-0 ring-[#99f6e4]/70 shadow"
+                    : "bg-white/10 border-white/15 hover:bg-white/15 hover:-translate-y-[1px]",
+                  atLimit && "opacity-40 cursor-not-allowed hover:translate-y-0"
+                ].join(" ")}
               >
                 {m}
               </button>
@@ -92,40 +124,69 @@ export default function App() {
           })}
         </section>
 
-        {/* Helper note */}
-        <div className="h-6 mt-2 text-center">
-          {limitNote && (
-            <span className="text-xs text-red-500">
-              Limit reached — pick at most {MAX_SELECT} moods.
-            </span>
+        {/* Helper + clear */}
+        <div className="mt-2 flex justify-between items-center text-sm">
+          {limitNote ? (
+            <span className="text-rose-300/90">Limit reached — pick at most {MAX_SELECT} moods.</span>
+          ) : <span />}
+          {selected.length > 0 && (
+            <button onClick={clearSelection} className="text-white/70 hover:text-white">
+              Clear selection ✕
+            </button>
           )}
         </div>
 
         {/* CTA */}
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={getQuote}
-            disabled={loading || selected.length === 0}
-            className="px-6 py-3 rounded-xl bg-neutral-900 text-white disabled:opacity-50 hover:bg-black transition"
-          >
-            {loading ? "Thinking…" : "Get Quote"}
-          </button>
+        <div className="mt-6 flex justify-center">
+            <button
+              onClick={getQuote}
+              disabled={loading || selected.length === 0}
+              className="btn-shine px-7 py-3 rounded-xl bg-gradient-to-r from-sky-400 to-violet-400 text-black font-semibold shadow-lg disabled:opacity-60"
+            >
+              {loading ? "Thinking…" : BUTTON_TEXTS[Math.floor(Math.random() * BUTTON_TEXTS.length)]}
+            </button>
         </div>
 
-        {/* Result card */}
-        {quote && (
-          <div className="mt-8 border border-neutral-200 rounded-2xl bg-white p-6">
-            <p className="text-xs uppercase tracking-wide text-neutral-500">
-              For: <span className="font-medium text-neutral-700">{selectedStr}</span>
-            </p>
-            <p className="mt-3 text-2xl md:text-3xl leading-snug">
-              {quote}
-            </p>
+        {/* Skeleton while loading */}
+        {loading && (
+          <div className="mt-10 glow-card animate-fade-up">
+            <div className="inner p-6 rounded-[15px]">
+              <div className="skeleton h-3 w-28 rounded mb-4"></div>
+              <div className="skeleton h-7 w-full rounded mb-3"></div>
+              <div className="skeleton h-7 w-5/6 rounded mb-3"></div>
+              <div className="skeleton h-7 w-3/5 rounded"></div>
+            </div>
           </div>
         )}
 
-        <footer className="mt-10 text-center text-xs text-neutral-400">
-          Made with care · Minimal design
+        {/* Quote card */}
+        {!loading && quote && (
+          <div key={quote} className="mt-10 glow-card animate-fade-up">
+            <div className="inner p-6 md:p-7 rounded-[15px]">
+              <p className="text-xs uppercase tracking-wide text-white/70">
+                For: <span className="font-semibold text-white/90">{selectedStr}</span>
+              </p>
+              <div className="mt-3 text-2xl md:text-3xl leading-9 md:leading-[2.2rem]">
+                {quote.split(" ").map((w, i) => (
+                  <span key={i} className="inline-block mr-[6px] transition hover:text-sky-300 hover:-translate-y-0.5">
+                    {w}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={getQuote}
+                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15"
+                >
+                  Regenerate ↻
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <footer className="mt-12 text-center text-xs text-white/60">
+          Made with ✨ · Colorful & minimal
         </footer>
       </div>
     </div>
