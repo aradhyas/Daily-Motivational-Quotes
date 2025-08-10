@@ -1,14 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./index.css";
 
-const MOODS = ["happy", "sad", "anxious", "angry", "motivated", "lonely", "grateful", "tired"];
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8787"; // change to your deployed URL later
+const MOODS = [
+  "happy","sad","anxious","angry","motivated","lonely","grateful","tired",
+  "calm","stressed","curious","inspired","overwhelmed","hopeful","determined",
+  "bored","nostalgic","confident","fearful","excited","peaceful","frustrated","burnt out","creative"
+];
+const MAX_SELECT = 3;
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8787";
 
 export default function App() {
-  const [selected, setSelected] = useState([]);   // ← multi-select
+  const [selected, setSelected] = useState([]);
   const [quote, setQuote] = useState("");
   const [loading, setLoading] = useState(false);
   const [limitNote, setLimitNote] = useState(false);
+
+  // persist selection so users remember even after refresh
+  useEffect(() => {
+    const saved = localStorage.getItem("moods");
+    if (saved) setSelected(JSON.parse(saved));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("moods", JSON.stringify(selected));
+  }, [selected]);
 
   const selectedStr = useMemo(
     () => (selected.length ? selected.join(", ") : "neutral"),
@@ -18,13 +32,8 @@ export default function App() {
   function toggleMood(m) {
     setLimitNote(false);
     setSelected((prev) => {
-      // remove if already selected
       if (prev.includes(m)) return prev.filter((x) => x !== m);
-      // cap at 3
-      if (prev.length >= 3) {
-        setLimitNote(true);
-        return prev;
-      }
+      if (prev.length >= MAX_SELECT) { setLimitNote(true); return prev; }
       return [...prev, m];
     });
   }
@@ -46,35 +55,36 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white px-6 py-12">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 px-6 py-12">
       <div className="mx-auto w-full max-w-3xl">
         <header className="text-center">
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">
-            🌤️ Mood‑Based Quote Generator
+          <h1 className="text-3xl md:text-5xl font-semibold tracking-tight">
+            Mood Quotes
           </h1>
-          <p className="mt-2 text-sm md:text-base text-white/70">
-            Pick up to <b>three</b> moods and get a tiny boost.
+          <p className="mt-2 text-sm md:text-base text-neutral-500">
+            Pick up to <b>{MAX_SELECT}</b> emotions and get a tiny boost.
           </p>
         </header>
 
         {/* Mood chips */}
-        <section className="mt-8 flex flex-wrap justify-center gap-2 md:gap-3">
+        <section className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
           {MOODS.map((m) => {
             const isActive = selected.includes(m);
-            const atLimit = !isActive && selected.length >= 3;
+            const atLimit = !isActive && selected.length >= MAX_SELECT;
             return (
               <button
                 key={m}
                 onClick={() => toggleMood(m)}
                 className={[
-                  "px-4 py-2 rounded-full border transition-all select-none",
-                  "border-white/15 bg-white/5 text-white backdrop-blur-sm",
-                  "hover:border-white/40 hover:bg-white/10 hover:-translate-y-[1px]",
-                  isActive && "bg-white text-black font-semibold shadow-md",
-                  atLimit && "opacity-40 cursor-not-allowed hover:translate-y-0",
+                  "w-full text-sm px-3 py-2 rounded-full border transition",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/50",
+                  isActive
+                    ? "bg-white border-neutral-900 text-neutral-900 ring-1 ring-neutral-900 shadow-sm"
+                    : "bg-neutral-100 border-neutral-300 hover:bg-white hover:border-neutral-400",
+                  atLimit && "opacity-40 cursor-not-allowed hover:bg-neutral-100 hover:border-neutral-300",
                 ].join(" ")}
                 aria-pressed={isActive}
-                title={atLimit ? "You can select up to 3 moods" : `Toggle ${m}`}
+                title={atLimit ? `You can select up to ${MAX_SELECT}` : `Toggle ${m}`}
               >
                 {m}
               </button>
@@ -85,7 +95,9 @@ export default function App() {
         {/* Helper note */}
         <div className="h-6 mt-2 text-center">
           {limitNote && (
-            <span className="text-xs text-red-300">Limit reached — pick at most 3 moods.</span>
+            <span className="text-xs text-red-500">
+              Limit reached — pick at most {MAX_SELECT} moods.
+            </span>
           )}
         </div>
 
@@ -94,7 +106,7 @@ export default function App() {
           <button
             onClick={getQuote}
             disabled={loading || selected.length === 0}
-            className="px-6 py-3 rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 shadow-lg transition"
+            className="px-6 py-3 rounded-xl bg-neutral-900 text-white disabled:opacity-50 hover:bg-black transition"
           >
             {loading ? "Thinking…" : "Get Quote"}
           </button>
@@ -102,27 +114,18 @@ export default function App() {
 
         {/* Result card */}
         {quote && (
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-6 md:p-7 backdrop-blur">
-            <p className="text-xs uppercase tracking-wide text-white/60">
-              For: <span className="font-semibold text-white/80">{selectedStr}</span>
+          <div className="mt-8 border border-neutral-200 rounded-2xl bg-white p-6">
+            <p className="text-xs uppercase tracking-wide text-neutral-500">
+              For: <span className="font-medium text-neutral-700">{selectedStr}</span>
             </p>
-
-            {/* Hover effect on each word */}
-            <div className="mt-3 text-2xl md:text-3xl leading-9 md:leading-[2.2rem] flex flex-wrap gap-x-1">
-              {quote.split(" ").map((w, i) => (
-                <span
-                  key={i}
-                  className="inline-block transition-all hover:text-blue-300 hover:underline hover:-translate-y-0.5"
-                >
-                  {w}
-                </span>
-              ))}
-            </div>
+            <p className="mt-3 text-2xl md:text-3xl leading-snug">
+              {quote}
+            </p>
           </div>
         )}
 
-        <footer className="mt-10 text-center text-xs text-white/50">
-          <span>Made with ❤️ for good vibes</span>
+        <footer className="mt-10 text-center text-xs text-neutral-400">
+          Made with care · Minimal design
         </footer>
       </div>
     </div>
